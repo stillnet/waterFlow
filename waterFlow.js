@@ -88,8 +88,8 @@ setInterval(function() {
 
     console.log(counter);
     // only send data if it's greater than 0. But always finish a dataset with a zero so we have a clean chart
-    // We also make sure the counter is at least 2 to ignore noise / false signals
-    if (counter > 0 && lastcounter > 0 ) {
+    // We also make sure the counter is at least 1 to ignore noise / false signals
+    if (counter > 1 || (counter == 0 && lastcounter > 0) ) {
       sendData({"flow_rate":counter,"timestamp":timestamp})
     }
     counter = 0
