@@ -3,7 +3,6 @@ const led = new Gpio(17, 'out');
 const { Pool } = require('pg')
 const fs = require('fs')
 
-
 if (! fs.existsSync('./config/default.json5')) {
     console.error('config/default.json5 must exist. Look at config/example.json5')
     process.exit()
@@ -22,6 +21,8 @@ if (config.has('locationid') && config.get('locationid').length ) {
 else {
   global.locationid = 0
   }
+
+global.showerid = 0
 
 const inputPinRef = new Gpio(config.get('inputPin'), 'in', 'rising');
 const debuglogging = config.get('debuglogging')
@@ -65,6 +66,12 @@ connectToDB(false)
 
 var counter = 0
 
+// test
+testarray = [0,0,0,0,50,49,48,50,44,0,0,0,0]
+setInterval(function() {
+  counter = testarray.shift() 
+},1000)
+
 inputPinRef.watch((err, value) => {
   if (err) {
     throw err;
@@ -80,35 +87,81 @@ process.on('SIGINT', _ => {
 });
 
 setInterval(function() {
-    var timestamp = new Date()
 
     if (typeof lastcounter == 'undefined') { lastcounter = '' }
     console.log(`lastcounter: ${lastcounter}, counter:${counter}`)
     lastcounter = counter
 
-    console.log(counter);
-    // only send data if it's greater than 0. But always finish a dataset with a zero so we have a clean chart
-    // We also make sure the counter is at least 1 to ignore noise / false signals
+    // if both counters are above zero, start the shower, or update one if there is already one started
     if (counter > 1 || (counter == 0 && lastcounter > 0) ) {
-      sendData({"flow_rate":counter,"timestamp":timestamp})
+      if ( global.showerid ) {
+        updateShower(global.showerid)
+      }
+      else {
+        global.showerid = startShower()
+      }
     }
+    // else stop the shower, if there is one going
+    else if (global.showerid) {
+      endShower(global.showerid)
+    }
+
     counter = 0
     
 }, 1000);
 
 
-async function sendData(dataset) {
+async function startShower(dataset) {
+    var timestamp = new Date()
     const query = `
-    INSERT INTO waterflow (timestamp, locationid, flow_rate)
-    VALUES ($1, $2, $3);
+    INSERT INTO showers (showerid, start)
+    VALUES (DEFAULT, $1)
+    RETURNING showerid;
     `
-    await pool.query(query,[dataset.timestamp, global.locationid, dataset.flow_rate])
-    .then( ()=> {
-        if (debuglogging) console.log(`${dataset.flow_rate} for ${dataset.timestamp} has been sent.`)
-        //else process.stdout.write(dataset.busvolts + ", " + dataset.current + "\r")
+    await pool.query(query,[timestamp])
+    .then( (result)=> {
+	global.showerid = result.rows[0].showerid;
+        if (debuglogging) console.log(`showerid is ${global.showerid}.`)
+	global.showerstart = timestamp
+        return global.showerid
     })
     .catch( (error) => {
         console.log(`Error during SQL execution, will exit. Error: ${error}`)
         process.exit()
     })
+}
+
+async function updateShower(showerid) {
+    console.log(`updateShower called with ${showerid}`)
+    var timestamp = new Date()
+    const query = `
+    UPDATE showers SET "lastUpdate" = $1 WHERE showerid = $2;
+    `
+    await pool.query(query,[timestamp,global.showerid])
+    .then( (result)=> {
+        if (debuglogging) console.log(`updated showerid ${global.showerid}.`)
+    })
+    .catch( (error) => {
+        console.log(`Error during SQL update, will exit. Error: ${error}`)
+        process.exit()
+    })
+}
+
+async function endShower(showerid) {
+  var stopTime = new Date()
+  var showerTime = Math.round( (stopTime - global.showerstart) / 1000)
+  console.log(`endShower called with ${showerid}. Took ${showerTime} seconds`)
+    var timestamp = new Date()
+    const query = `
+    UPDATE showers SET "end" = $1 WHERE showerid = $2;
+    `
+    await pool.query(query,[timestamp,global.showerid])
+    .then( (result)=> {
+        if (debuglogging) console.log(`completed showerid ${global.showerid}.`)
+    })
+    .catch( (error) => {
+        console.log(`Error during SQL update, will exit. Error: ${error}`)
+        process.exit()
+    })
+  global.showerid = 0
 }
