@@ -27,9 +27,9 @@ const inputPinRef = new Gpio(config.get('inputPin'), 'in', 'rising');
 const debuglogging = config.get('debuglogging')
 
 function connectToDB(retryOnFailure = true) {
-    postgressConfiguration = config.get('postgresConfiguration')
+    postgresConfiguration = config.get('postgresConfiguration')
 
-    pool = new Pool( postgressConfiguration )
+    pool = new Pool( postgresConfiguration )
     
     pool.on('error', function(error) {
         console.log('Lost connection to database: ' + error)
