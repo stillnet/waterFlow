@@ -67,10 +67,10 @@ connectToDB(false)
 var counter = 0
 
 // test
-testarray = [0,0,0,0,50,49,48,50,44,0,0,0,0]
-setInterval(function() {
-  counter = testarray.shift() 
-},1000)
+//testarray = [0,0,0,0,50,49,48,50,21,33,33,33,33,33,33,33,33,33,33,44,0,0,0]
+//setInterval(function() {
+  //counter = testarray.shift() 
+//},1000)
 
 inputPinRef.watch((err, value) => {
   if (err) {
@@ -89,7 +89,7 @@ process.on('SIGINT', _ => {
 setInterval(function() {
 
     if (typeof lastcounter == 'undefined') { lastcounter = '' }
-    console.log(`lastcounter: ${lastcounter}, counter:${counter}`)
+    if (config.get('debuglogging')) console.log(`lastcounter: ${lastcounter}, counter:${counter}`) 
     lastcounter = counter
 
     // if both counters are above zero, start the shower, or update one if there is already one started
@@ -150,14 +150,14 @@ async function updateShower(showerid) {
 async function endShower(showerid) {
   var stopTime = new Date()
   var showerTime = Math.round( (stopTime - global.showerstart) / 1000)
-  console.log(`endShower called with ${showerid}. Took ${showerTime} seconds`)
+  if (config.get('debuglogging')) console.log(`endShower called with ${showerid}. Took ${showerTime} seconds`)
     var timestamp = new Date()
     const query = `
     UPDATE showers SET "end" = $1 WHERE showerid = $2;
     `
     await pool.query(query,[timestamp,global.showerid])
     .then( (result)=> {
-        if (debuglogging) console.log(`completed showerid ${global.showerid}.`)
+        if (config.get('debuglogging')) console.log(`completed showerid ${global.showerid}.`)
     })
     .catch( (error) => {
         console.log(`Error during SQL update, will exit. Error: ${error}`)
