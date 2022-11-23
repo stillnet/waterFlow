@@ -3,6 +3,8 @@ const led = new Gpio(17, 'out');
 const { Pool } = require('pg')
 const fs = require('fs')
 
+console.log(new Date().toLocaleString() + ' ' + 'waterFlow.js script started.')
+
 if (! fs.existsSync('./config/default.json5')) {
     console.error('config/default.json5 must exist. Look at config/example.json5')
     process.exit()
@@ -56,7 +58,7 @@ function connectToDB(retryOnFailure = true) {
 	    }
 	    else {
 	        console.error(`Error connecting to Postgres! ${e}. Will exit. `)
-		    process.exit()}
+		    process.exit(1)}
 	    })
     })()
 }
@@ -94,6 +96,7 @@ setInterval(function() {
 
     // if both counters are above zero, start the shower, or update one if there is already one started
     if (counter > 1 || (counter == 0 && lastcounter > 0) ) {
+      console.log(new Date().toLocaleString() + ' ' + 'Counter is ' + counter)
       if ( global.showerid ) {
         updateShower(global.showerid)
       }
@@ -127,12 +130,12 @@ async function startShower(dataset) {
     })
     .catch( (error) => {
         console.log(`Error during SQL execution, will exit. Error: ${error}`)
-        process.exit()
+        process.exit(1)
     })
 }
 
 async function updateShower(showerid) {
-    console.log(`updateShower called with ${showerid}`)
+    //console.log(`updateShower called with ${showerid}`)
     var timestamp = new Date()
     const query = `
     UPDATE showers SET "lastUpdate" = $1 WHERE showerid = $2;
@@ -143,7 +146,7 @@ async function updateShower(showerid) {
     })
     .catch( (error) => {
         console.log(`Error during SQL update, will exit. Error: ${error}`)
-        process.exit()
+        process.exit(1)
     })
 }
 
@@ -161,7 +164,7 @@ async function endShower(showerid) {
     })
     .catch( (error) => {
         console.log(`Error during SQL update, will exit. Error: ${error}`)
-        process.exit()
+        process.exit(1)
     })
   global.showerid = 0
 }
