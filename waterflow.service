@@ -8,7 +8,7 @@ ExecStart=node /home/pi/src/waterFlow/waterFlow.js
 WorkingDirectory=/home/pi/src/waterFlow
 Restart=on-failure
 RestartSec=60
-User=[your user]
+User=[Your User]
 StandardOutput=append:/var/log/waterFlow.log
 StandardError=append:/var/log/waterFlow.log
 [Install]
